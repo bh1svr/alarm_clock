@@ -13,6 +13,8 @@
 #define DEMO_LPUART_CLK_FREQ   (BOARD_DEBUG_UART_CLK_FREQ)
 #define DEMO_LPUART_IRQn       LPUART1_IRQn
 #define DEMO_LPUART_IRQHandler LPUART1_IRQHandler
+#define BOARD_LED_GPIO     BOARD_LED_RED_GPIO
+#define BOARD_LED_GPIO_PIN BOARD_LED_RED_GPIO_PIN
 
 extern int pwm_main(void);
 // 显示模式枚举
@@ -46,8 +48,6 @@ void DEMO_LPUART_IRQHandler(void)
  */
 int main(void)
 {
-    lpuart_config_t config;
-
     /* Attach peripheral clock */
     CLOCK_SetClockDiv(kCLOCK_DivLPUART1, 1u);
     CLOCK_AttachClk(kFRO12M_to_LPUART1);
@@ -56,15 +56,8 @@ int main(void)
     BOARD_InitBootClocks();
     BOARD_InitDebugConsole();
     PRINTF("Alarm Clock 1\r\n");
-    /*
-     * config.baudRate_Bps = 115200U;
-     * config.parityMode = kLPUART_ParityDisabled;
-     * config.stopBitCount = kLPUART_OneStopBit;
-     * config.txFifoWatermark = 0;
-     * config.rxFifoWatermark = 0;
-     * config.enableTx = false;
-     * config.enableRx = false;
-     */
+    
+    lpuart_config_t config;
     LPUART_GetDefaultConfig(&config);
     config.baudRate_Bps = BOARD_DEBUG_UART_BAUDRATE;
     config.enableTx     = true;
@@ -75,6 +68,24 @@ int main(void)
     /* Enable RX interrupt. */
     LPUART_EnableInterrupts(DEMO_LPUART, kLPUART_RxDataRegFullInterruptEnable);
     EnableIRQ(DEMO_LPUART_IRQn);
+
+    /* Define the init structure for the output LED pin*/
+    gpio_pin_config_t led_config = {
+        kGPIO_DigitalOutput,
+        0,
+    };
+
+    /* Board pin, clock, debug console init */
+    /* Release peripheral reset */
+    RESET_ReleasePeripheralReset(kLPUART0_RST_SHIFT_RSTn);
+    RESET_ReleasePeripheralReset(kPORT0_RST_SHIFT_RSTn);
+    RESET_ReleasePeripheralReset(kPORT1_RST_SHIFT_RSTn);
+    RESET_ReleasePeripheralReset(kGPIO1_RST_SHIFT_RSTn);
+    CLOCK_EnableClock(kCLOCK_GateGPIO1);
+    
+    /* Init output LED GPIO. */
+    GPIO_PinInit(BOARD_LED_GPIO, BOARD_LED_GPIO_PIN, &led_config);
+    GPIO_PinWrite(BOARD_LED_RED_GPIO, BOARD_LED_RED_GPIO_PIN, LOGIC_LED_ON);  /*!< Turn on target LED_RED */
 
     pwm_main();
 }
