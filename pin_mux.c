@@ -171,7 +171,59 @@ void BOARD_InitPins(void)
     /* PORT3_12 (pin 63) is configured as P3_12 */
     PORT_SetPinConfig(PORT3, 12U, &port3_12_pin63_config);
 
+    /* GPIO1: Peripheral clock is enabled */
+    CLOCK_EnableClock(kCLOCK_GateGPIO1);
+    /* GPIO3: Peripheral clock is enabled */
+    CLOCK_EnableClock(kCLOCK_GateGPIO3);
+    /* PORT0: Peripheral clock is enabled */
+    CLOCK_EnableClock(kCLOCK_GatePORT0);
+    /* PORT1: Peripheral clock is enabled */
+    CLOCK_EnableClock(kCLOCK_GatePORT1);
+    /* PORT3: Peripheral clock is enabled */
+    CLOCK_EnableClock(kCLOCK_GatePORT3);
+    /* GPIO1 peripheral is released from reset */
+    RESET_ReleasePeripheralReset(kGPIO1_RST_SHIFT_RSTn);
+    /* GPIO3 peripheral is released from reset */
+    RESET_ReleasePeripheralReset(kGPIO3_RST_SHIFT_RSTn);
+    /* LPUART0 peripheral is released from reset */
+    RESET_ReleasePeripheralReset(kLPUART0_RST_SHIFT_RSTn);
+    /* PORT0 peripheral is released from reset */
+    RESET_ReleasePeripheralReset(kPORT0_RST_SHIFT_RSTn);
+    /* PORT1 peripheral is released from reset */
+    RESET_ReleasePeripheralReset(kPORT1_RST_SHIFT_RSTn);
+    /* PORT3 peripheral is released from reset */
+    RESET_ReleasePeripheralReset(kPORT3_RST_SHIFT_RSTn);
+
+    gpio_pin_config_t gpio1_pin100_config = {
+        .pinDirection = kGPIO_DigitalInput,
+        .outputLogic = 0U
+    };
+    /* Initialize GPIO functionality on pin PIO1_7 (pin 100)  */
+    GPIO_PinInit(GPIO1, 7U, &gpio1_pin100_config);
+
+    const port_pin_config_t port1_7_pin100_config = {/* Internal pull-up/down resistor is disabled */
+                                                     kPORT_PullDisable,
+                                                     /* Low internal pull resistor value is selected. */
+                                                     kPORT_LowPullResistor,
+                                                     /* Fast slew rate is configured */
+                                                     kPORT_FastSlewRate,
+                                                     /* Passive input filter is disabled */
+                                                     kPORT_PassiveFilterDisable,
+                                                     /* Open drain output is disabled */
+                                                     kPORT_OpenDrainDisable,
+                                                     /* Low drive strength is configured */
+                                                     kPORT_LowDriveStrength,
+                                                     /* Normal drive strength is configured */
+                                                     kPORT_NormalDriveStrength,
+                                                     /* Pin is configured as P1_7 */
+                                                     kPORT_MuxAlt0,
+                                                     /* Digital input enabled */
+                                                     kPORT_InputBufferEnable,
+                                                     /* Digital input is not inverted */
+                                                     kPORT_InputNormal,
+                                                     /* Pin Control Register fields [15:0] are not locked */
+                                                     kPORT_UnlockRegister};
+    /* PORT1_7 (pin 100) is configured as P1_7 */
+    PORT_SetPinConfig(PORT1, 7U, &port1_7_pin100_config);
+
 }
-/***********************************************************************************************************************
- * EOF
- **********************************************************************************************************************/
