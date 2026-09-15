@@ -1,9 +1,10 @@
-#include "pin_mux.h"
 #include "board.h"
 #include "fsl_lpuart.h"
 #include "fsl_debug_console.h"
+#include "fsl_pwm.h"
 #include "fsl_reset.h"
 #include "gps_parser.h"
+#include "pin_mux.h"
 #include <stdbool.h>
 #include "uart.h"
 
@@ -221,7 +222,7 @@ int main(void)
     
     BOARD_InitPins();
     BOARD_InitBootClocks();
-    BOARD_InitDebugConsole();
+    init_lpuart0();
     PRINTF("Alarm Clock 1\r\n");
 
     lpuart_config_t config;
@@ -274,11 +275,15 @@ int main(void)
         }
         if (is_alarm_enabled)
         {
-            GPIO_PinWrite(BOARD_LED_RED_GPIO, BOARD_LED_RED_GPIO_PIN, LOGIC_LED_ON);  /*!< Turn on target LED_RED */
+            GPIO_PinWrite(BOARD_LED_RED_GPIO, BOARD_LED_RED_GPIO_PIN, LOGIC_LED_ON);  /*!< Turn on target LED_RED */ 
+            /* Start the PWM generation from Submodules 0, 1 and 2 */
+            PWM_StartTimer(FLEXPWM0, kPWM_Control_Module_0 | kPWM_Control_Module_1 | kPWM_Control_Module_2);
         }
         else
         {
-            GPIO_PinWrite(BOARD_LED_RED_GPIO, BOARD_LED_RED_GPIO_PIN, LOGIC_LED_OFF);  /*!< Turn on target LED_RED */
+            GPIO_PinWrite(BOARD_LED_RED_GPIO, BOARD_LED_RED_GPIO_PIN, LOGIC_LED_OFF);  /*!< Turn on target LED_RED */  
+            /* Start the PWM generation from Submodules 0, 1 and 2 */
+            PWM_StopTimer(FLEXPWM0, kPWM_Control_Module_0 | kPWM_Control_Module_1 | kPWM_Control_Module_2);
         }
     }
 }
