@@ -1,17 +1,13 @@
 #include "board.h"
-#include "fsl_lpuart.h"
 #include "fsl_debug_console.h"
 #include "fsl_pwm.h"
 #include "fsl_reset.h"
 #include "gps_parser.h"
 #include "pin_mux.h"
+#include "pwm.h"
 #include <stdbool.h>
 #include "uart.h"
 
-#define DEMO_LPUART            LPUART1
-#define DEMO_LPUART_CLK_FREQ   (BOARD_DEBUG_UART_CLK_FREQ)
-#define DEMO_LPUART_IRQn       LPUART1_IRQn
-#define DEMO_LPUART_IRQHandler LPUART1_IRQHandler
 #define BOARD_LED_GPIO     BOARD_LED_RED_GPIO
 #define BOARD_LED_GPIO_PIN BOARD_LED_RED_GPIO_PIN
 #define BOARD_SW_GPIO        BOARD_SW2_GPIO
@@ -33,6 +29,7 @@ typedef enum {
 display_mode_t current_disp_mode = DISP_TIME;
 volatile _Bool is_alarm_enabled = true;
 volatile _Bool is_rmc_ready;
+volatile _Bool is_beeping = false;
 static local_time_t current_local_time = {0};
 
 #define NMEA_MAX_LENGTH 256
@@ -161,9 +158,9 @@ void DEMO_LPUART_IRQHandler(void)
     uint8_t data;
 
     /* If new data arrived. */
-    if ((kLPUART_RxDataRegFullFlag)&LPUART_GetStatusFlags(DEMO_LPUART))
+    if ((kLPUART_RxDataRegFullFlag)&LPUART_GetStatusFlags(LPUART1))
     {
-        data = LPUART_ReadByte(DEMO_LPUART);
+        data = LPUART_ReadByte(LPUART1);
         GPS_ParseChar(data);
     }
     SDK_ISR_EXIT_BARRIER;
@@ -177,21 +174,21 @@ static void alarm_clock_check()
 
     // 当达到闹钟时间时
     if (current_local_time.hour == alarm_hour && current_local_time.minute == alarm_min)
-    {
+    {       
+        if (is_alarm_triggered)
+        {
+            return;
+        }
         if (is_alarm_enabled)
         {
-            if (is_alarm_triggered)
-            {
-                return;
-            } 
-            //TODO: 启动PWM
-            is_alarm_triggered = true;
+            is_beeping = true;
         }
-        else if (current_local_time.weekday == 0)
+        /*周六、周日或周一至周五人为关掉了闹钟*/
+        else if (current_local_time.weekday == 0)    /*周日*/
         {
             is_alarm_enabled = true;
-            //TODO: 更新指示灯
         }
+        is_alarm_triggered = true;
     }
     else
     {
@@ -200,10 +197,9 @@ static void alarm_clock_check()
             /*刚刚触发了闹钟*/
             is_alarm_triggered = false;
             // 1. 周五闹钟响完后自动 disable 的逻辑
-            if (current_local_time.weekday == 5)
+            if (current_local_time.weekday == 5)    /*周五*/
             { // 5 = Friday
                 is_alarm_enabled = false;
-                //TODO: 更新指示灯
             }
         }
     }
@@ -212,31 +208,27 @@ static void alarm_clock_check()
 void BOARD_SW_IRQ_HANDLER(void)
 {
     GPIO_GpioClearInterruptFlags(BOARD_SW_GPIO, 1U << BOARD_SW_GPIO_PIN);
-    is_alarm_enabled = !is_alarm_enabled;
+    /*蜂鸣器正在响，此时按键关掉蜂鸣器*/
+    if (is_beeping)
+    {
+        is_beeping = false;
+    }
+    /*平时做闹钟开关*/
+    else
+    {
+        is_alarm_enabled = !is_alarm_enabled;
+    }
     SDK_ISR_EXIT_BARRIER;
 }
 
 int main(void)
 {
-    init_lpuart1();
-    
     BOARD_InitPins();
     BOARD_InitBootClocks();
     init_lpuart0();
     PRINTF("Alarm Clock 1\r\n");
 
-    lpuart_config_t config;
-    LPUART_GetDefaultConfig(&config);
-    config.baudRate_Bps = BOARD_DEBUG_UART_BAUDRATE;
-    config.enableTx     = true;
-    config.enableRx     = true;
-
-    LPUART_Init(DEMO_LPUART, &config, DEMO_LPUART_CLK_FREQ);
-
-    /* Enable RX interrupt. */
-    LPUART_EnableInterrupts(DEMO_LPUART, kLPUART_RxDataRegFullInterruptEnable);
-    EnableIRQ(DEMO_LPUART_IRQn);
-
+    init_lpuart1();
     /* Define the init structure for the output LED pin*/
     gpio_pin_config_t led_config = {
         kGPIO_DigitalOutput,
@@ -265,25 +257,42 @@ int main(void)
 
     pwm_main();
     
+    uint32_t cycle = 0;
+
     for (;;)
     {
+        /*收到GPS数据，解析并判断闹钟*/
         if (is_rmc_ready)
         {
             is_rmc_ready = false;
             parse_gprmc(rmc);
             alarm_clock_check();
+            PRINTF("%04d%02d%02d-%02d:%02d:%02d\r\n", current_local_time.year, current_local_time.month, current_local_time.day, 
+                current_local_time.hour, current_local_time.minute, current_local_time.second);
         }
+        /*LED状态刷新*/
         if (is_alarm_enabled)
         {
             GPIO_PinWrite(BOARD_LED_RED_GPIO, BOARD_LED_RED_GPIO_PIN, LOGIC_LED_ON);  /*!< Turn on target LED_RED */ 
-            /* Start the PWM generation from Submodules 0, 1 and 2 */
-            PWM_StartTimer(FLEXPWM0, kPWM_Control_Module_0 | kPWM_Control_Module_1 | kPWM_Control_Module_2);
         }
         else
         {
             GPIO_PinWrite(BOARD_LED_RED_GPIO, BOARD_LED_RED_GPIO_PIN, LOGIC_LED_OFF);  /*!< Turn on target LED_RED */  
-            /* Start the PWM generation from Submodules 0, 1 and 2 */
-            PWM_StopTimer(FLEXPWM0, kPWM_Control_Module_0 | kPWM_Control_Module_1 | kPWM_Control_Module_2);
+        }
+
+        if (is_beeping)
+        {
+            uint32_t flag = cycle++ & 0x1FFFFF;
+            if (flag == 0)
+            {
+                /* Start the PWM generation from Submodules 0, 1 and 2 */
+                PWM_StartTimer(FLEXPWM0, kPWM_Control_Module_0);
+            }
+            else if (flag == 0x100000)
+            {
+                /* Start the PWM generation from Submodules 0, 1 and 2 */
+                PWM_StopTimer(FLEXPWM0, kPWM_Control_Module_0);
+            }
         }
     }
 }
