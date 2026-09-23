@@ -17,7 +17,7 @@ void init_lpuart1()
 {
     CLOCK_SetClockDiv(kCLOCK_DivLPUART1, 1u);
     CLOCK_AttachClk(kFRO12M_to_LPUART1);
-    
+
     lpuart_config_t config;
     LPUART_GetDefaultConfig(&config);
     config.baudRate_Bps = BOARD_DEBUG_UART_BAUDRATE;
@@ -29,5 +29,6 @@ void init_lpuart1()
     /* Enable RX interrupt. */
     LPUART_EnableInterrupts(LPUART1, kLPUART_RxDataRegFullInterruptEnable);
     EnableIRQ(LPUART1_IRQn);
+
 }
 

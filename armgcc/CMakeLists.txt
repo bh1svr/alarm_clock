@@ -69,6 +69,7 @@ add_executable(${MCUX_SDK_PROJECT_NAME}
 "${ProjDirPath}/../fsl_pwm.c"
 "${ProjDirPath}/../alarm_clock.c"
 "${ProjDirPath}/../uart.c"
+"${ProjDirPath}/../led.c"
 )
 
 target_include_directories(${MCUX_SDK_PROJECT_NAME} PRIVATE

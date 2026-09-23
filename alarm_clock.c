@@ -1,4 +1,5 @@
 #include "board.h"
+#include "fsl_lpuart.h"
 #include "fsl_debug_console.h"
 #include "fsl_pwm.h"
 #include "fsl_reset.h"
@@ -15,6 +16,8 @@
 #define BOARD_SW_NAME        BOARD_SW2_NAME
 #define BOARD_SW_IRQ         BOARD_SW2_IRQ
 #define BOARD_SW_IRQ_HANDLER BOARD_SW2_IRQ_HANDLER
+#define BEEP_ON()            PWM_StartTimer(FLEXPWM0, kPWM_Control_Module_0);
+#define BEEP_OFF()           PWM_StopTimer(FLEXPWM0, kPWM_Control_Module_0);
 
 extern int pwm_main(void);
 // 显示模式枚举
@@ -84,7 +87,8 @@ static uint8_t calculate_weekday(uint16_t y, uint8_t m, uint8_t d) {
 }
 
 // 将 UTC 字符串 (hhmmss, ddmmyy) 转换为本地时间 (UTC+8)
-static void convert_to_local_time(const char* time_str, const char* date_str, local_time_t* t) {
+static void convert_to_local_time(const char* time_str, const char* date_str, local_time_t* t)
+{
     if (strlen(time_str) < 6)
     {
         return;
@@ -94,10 +98,21 @@ static void convert_to_local_time(const char* time_str, const char* date_str, lo
     uint8_t u_hh = (time_str[0] - '0') * 10 + (time_str[1] - '0');
     uint8_t u_mm = (time_str[2] - '0') * 10 + (time_str[3] - '0');
     uint8_t u_ss = (time_str[4] - '0') * 10 + (time_str[5] - '0');
-    uint8_t u_d = (date_str[0] - '0') * 10 + (date_str[1] - '0');
-    uint8_t u_M = (date_str[2] - '0') * 10 + (date_str[3] - '0');
-    uint16_t u_y = (date_str[4] - '0') * 10 + (date_str[5] - '0') + 2000;
 
+    uint16_t u_y;
+    uint8_t  u_M, u_d;
+    if (*date_str)
+    {
+        u_d = (date_str[0] - '0') * 10 + (date_str[1] - '0');
+        u_M = (date_str[2] - '0') * 10 + (date_str[3] - '0');
+        u_y = (date_str[4] - '0') * 10 + (date_str[5] - '0') + 2000;
+    }
+    else
+    {
+        u_y = 0;
+        u_M = 0;
+        u_d = 0;
+    }
     // 加上 8 小时
     u_hh += 8;
 
@@ -153,7 +168,7 @@ static void parse_gprmc(char* nmea) {
     convert_to_local_time(time_str, date_str, &current_local_time);
 }
 
-void DEMO_LPUART_IRQHandler(void)
+void LPUART1_IRQHandler(void)
 {
     uint8_t data;
 
@@ -183,12 +198,7 @@ static void alarm_clock_check()
         {
             is_beeping = true;
         }
-        /*周六、周日或周一至周五人为关掉了闹钟*/
-        else if (current_local_time.weekday == 0)    /*周日*/
-        {
-            is_alarm_enabled = true;
-        }
-        is_alarm_triggered = true;
+               is_alarm_triggered = true;
     }
     else
     {
@@ -196,10 +206,21 @@ static void alarm_clock_check()
         {
             /*刚刚触发了闹钟*/
             is_alarm_triggered = false;
+            
             // 1. 周五闹钟响完后自动 disable 的逻辑
             if (current_local_time.weekday == 5)    /*周五*/
             { // 5 = Friday
                 is_alarm_enabled = false;
+            }
+            /*周六、周日或周一至周五人为关掉了闹钟*/
+            else if (current_local_time.weekday == 0)    /*周日*/
+            {
+                is_alarm_enabled = true;
+            }
+
+            if (is_beeping)
+            {
+                is_beeping = false;
             }
         }
     }
@@ -221,14 +242,25 @@ void BOARD_SW_IRQ_HANDLER(void)
     SDK_ISR_EXIT_BARRIER;
 }
 
+static void self_test()
+{
+    LED_RED_ON();
+    while (!is_rmc_ready)
+    {
+        ;
+    }
+    BEEP_ON();
+    SDK_DelayAtLeastUs(9e5, SDK_DEVICE_MAXIMUM_CPU_CLOCK_FREQUENCY);
+}
+
 int main(void)
 {
     BOARD_InitPins();
     BOARD_InitBootClocks();
     init_lpuart0();
     PRINTF("Alarm Clock 1\r\n");
-
     init_lpuart1();
+    
     /* Define the init structure for the output LED pin*/
     gpio_pin_config_t led_config = {
         kGPIO_DigitalOutput,
@@ -256,9 +288,9 @@ int main(void)
     GPIO_PinInit(BOARD_SW_GPIO, BOARD_SW_GPIO_PIN, &sw_config);
 
     pwm_main();
-    
-    uint32_t cycle = 0;
+    self_test();
 
+    uint32_t cycle = 0;
     for (;;)
     {
         /*收到GPS数据，解析并判断闹钟*/
@@ -267,17 +299,17 @@ int main(void)
             is_rmc_ready = false;
             parse_gprmc(rmc);
             alarm_clock_check();
-            PRINTF("%04d%02d%02d-%02d:%02d:%02d\r\n", current_local_time.year, current_local_time.month, current_local_time.day, 
+            PRINTF("%04d%02d%02d-%02d:%02d:%02d\r\n", current_local_time.year, current_local_time.month, current_local_time.day,
                 current_local_time.hour, current_local_time.minute, current_local_time.second);
         }
         /*LED状态刷新*/
         if (is_alarm_enabled)
         {
-            GPIO_PinWrite(BOARD_LED_RED_GPIO, BOARD_LED_RED_GPIO_PIN, LOGIC_LED_ON);  /*!< Turn on target LED_RED */ 
+            LED_RED_OFF();
         }
         else
         {
-            GPIO_PinWrite(BOARD_LED_RED_GPIO, BOARD_LED_RED_GPIO_PIN, LOGIC_LED_OFF);  /*!< Turn on target LED_RED */  
+            LED_RED_ON();
         }
 
         if (is_beeping)
@@ -285,14 +317,16 @@ int main(void)
             uint32_t flag = cycle++ & 0x1FFFFF;
             if (flag == 0)
             {
-                /* Start the PWM generation from Submodules 0, 1 and 2 */
-                PWM_StartTimer(FLEXPWM0, kPWM_Control_Module_0);
+                BEEP_ON();
             }
             else if (flag == 0x100000)
             {
-                /* Start the PWM generation from Submodules 0, 1 and 2 */
-                PWM_StopTimer(FLEXPWM0, kPWM_Control_Module_0);
+                BEEP_OFF();
             }
+        }
+        else
+        {
+            BEEP_OFF();
         }
     }
 }
