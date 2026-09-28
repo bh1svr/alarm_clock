@@ -4,6 +4,7 @@
 #include "fsl_pwm.h"
 #include "fsl_reset.h"
 #include "gps_parser.h"
+#include "led.h"
 #include "pin_mux.h"
 #include "pwm.h"
 #include <stdbool.h>
@@ -127,7 +128,6 @@ int main(void)
     BOARD_InitPins();
     BOARD_InitBootClocks();
     init_lpuart0();
-    PRINTF("Alarm Clock 1\r\n");
     init_lpuart1();
     
     /* Define the init structure for the output LED pin*/
@@ -155,10 +155,10 @@ int main(void)
     GPIO_SetPinInterruptConfig(BOARD_SW_GPIO, BOARD_SW_GPIO_PIN, kGPIO_InterruptFallingEdge);
     EnableIRQ(BOARD_SW_IRQ);
     GPIO_PinInit(BOARD_SW_GPIO, BOARD_SW_GPIO_PIN, &sw_config);
-
     pwm_main();
+    init_led();
     self_test();
-
+    
     uint32_t cycle = 0;
     for (;;)
     {
@@ -168,8 +168,7 @@ int main(void)
             is_rmc_ready = false;
             parse_gprmc(rmc);
             alarm_clock_check();
-            PRINTF("%04d%02d%02d-%02d:%02d:%02d\r\n", current_local_time.year, current_local_time.month, current_local_time.day,
-                current_local_time.hour, current_local_time.minute, current_local_time.second);
+            display_time();
         }
         /*LED状态刷新*/
         if (is_alarm_enabled)

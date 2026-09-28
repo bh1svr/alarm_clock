@@ -1,6 +1,7 @@
 #include "board.h"
 #include "fsl_port.h"
 #include "fsl_gpio.h"
+#include "gps_parser.h"
 #include <stdint.h>
 
 #define uchar uint8_t
@@ -15,6 +16,8 @@
 #define CS(x) GPIO_PinWrite(GPCS, PINCS, x);
 #define CLK(x) GPIO_PinWrite(GPCLK, PINCLK, x);
 #define DIN(x) GPIO_PinWrite(GPDIN, PINDIN, x);
+
+static void Write_Max7219(uchar address,uchar dat);
 
 static void init_pins_led()
 {
@@ -106,6 +109,15 @@ void Write_Max7219_byte(uchar DATA)
         }                                 
 }
 
+void display_time()
+{
+    Write_Max7219(1, current_local_time.second % 10);
+    Write_Max7219(2, current_local_time.second / 10);
+    Write_Max7219(4, current_local_time.minute % 10);
+    Write_Max7219(5, current_local_time.minute / 10);
+    Write_Max7219(7, current_local_time.hour   % 10);
+    Write_Max7219(8, current_local_time.hour   / 10);
+}
 //-------------------------------------------
 
 //功能：向MAX7219写入数据
@@ -116,7 +128,7 @@ void Write_Max7219_byte(uchar DATA)
 
 //说明：
 
-void Write_Max7219(uchar address,uchar dat)
+static void Write_Max7219(uchar address,uchar dat)
 { 
      CS(0);
 	 Write_Max7219_byte(address);           //写入地址，即数码管编号
@@ -140,31 +152,13 @@ void Init_MAX7219(void)
 
 }
 
-void led_test(void)
+void init_led(void)
 {
- Delay_xms(50);
  init_pins_led();
  Init_MAX7219();
-
- Delay_xms(2000);
-
  Write_Max7219(0x0f, 0x00);       //显示测试：1；测试结束，正常显示：0
-
- Write_Max7219(1,8);
-
- Write_Max7219(2,7);
-
- Write_Max7219(3,6);
-
- Write_Max7219(4,5); 
-
- Write_Max7219(5,4);
-
- Write_Max7219(6,3);
-
- Write_Max7219(7,2);
-
- Write_Max7219(8,1);
+ Write_Max7219(3, 0xF);
+ Write_Max7219(6, 0xF);
 }
 
 
