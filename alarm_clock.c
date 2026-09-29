@@ -1,4 +1,4 @@
-#include "board.h"
+#include "alarm_clock.h"
 #include "fsl_lpuart.h"
 #include "fsl_debug_console.h"
 #include "fsl_pwm.h"
@@ -13,28 +13,18 @@
  * P0_3  LPUART0_TX
  * P1_14 LED_DIN
  * P3_1  LED_CS
+ * P3_20 LPUART1_RX
+ * P3_21 LPUART1_TX
  * P3_31 LED_CLK*/
 #define BOARD_LED_GPIO     BOARD_LED_RED_GPIO
 #define BOARD_LED_GPIO_PIN BOARD_LED_RED_GPIO_PIN
-#define BOARD_SW_GPIO        BOARD_SW2_GPIO
-#define BOARD_SW_GPIO_PIN    BOARD_SW2_GPIO_PIN
-#define BOARD_SW_NAME        BOARD_SW2_NAME
-#define BOARD_SW_IRQ         BOARD_SW2_IRQ
-#define BOARD_SW_IRQ_HANDLER BOARD_SW2_IRQ_HANDLER
 #define BEEP_ON()            PWM_StartTimer(FLEXPWM0, kPWM_Control_Module_0);
 #define BEEP_OFF()           PWM_StopTimer(FLEXPWM0, kPWM_Control_Module_0);
 
 extern int pwm_main(void);
-// 显示模式枚举
-typedef enum {
-    DISP_MONTH_DAY = 0,
-    DISP_TIME,
-    DISP_ALARM,
-    DISP_TEMP
-} display_mode_t;
 
 // 全局状态变量
-display_mode_t current_disp_mode = DISP_TIME;
+volatile display_mode_t current_disp_mode = DISP_TIME;
 volatile _Bool is_alarm_enabled = true;
 volatile _Bool is_beeping = false;
 
@@ -96,22 +86,6 @@ static void alarm_clock_check()
     }
 }
 
-void BOARD_SW_IRQ_HANDLER(void)
-{
-    GPIO_GpioClearInterruptFlags(BOARD_SW_GPIO, 1U << BOARD_SW_GPIO_PIN);
-    /*蜂鸣器正在响，此时按键关掉蜂鸣器*/
-    if (is_beeping)
-    {
-        is_beeping = false;
-    }
-    /*平时做闹钟开关*/
-    else
-    {
-        is_alarm_enabled = !is_alarm_enabled;
-    }
-    SDK_ISR_EXIT_BARRIER;
-}
-
 static void self_test()
 {
     LED_RED_ON();
@@ -152,9 +126,14 @@ int main(void)
     /* Init output LED GPIO. */
     GPIO_PinInit(BOARD_LED_GPIO, BOARD_LED_GPIO_PIN, &led_config);
 
-    GPIO_SetPinInterruptConfig(BOARD_SW_GPIO, BOARD_SW_GPIO_PIN, kGPIO_InterruptFallingEdge);
-    EnableIRQ(BOARD_SW_IRQ);
-    GPIO_PinInit(BOARD_SW_GPIO, BOARD_SW_GPIO_PIN, &sw_config);
+    GPIO_SetPinInterruptConfig(BOARD_SW2_GPIO, BOARD_SW2_GPIO_PIN, kGPIO_InterruptFallingEdge);
+    EnableIRQ(BOARD_SW2_IRQ);
+    GPIO_PinInit(BOARD_SW2_GPIO, BOARD_SW2_GPIO_PIN, &sw_config);
+
+    GPIO_SetPinInterruptConfig(BOARD_SW3_GPIO, BOARD_SW3_GPIO_PIN, kGPIO_InterruptFallingEdge);
+    EnableIRQ(BOARD_SW3_IRQ);
+    GPIO_PinInit(BOARD_SW3_GPIO, BOARD_SW3_GPIO_PIN, &sw_config);
+
     pwm_main();
     init_led();
     self_test();

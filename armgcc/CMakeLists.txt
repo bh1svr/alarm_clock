@@ -55,7 +55,6 @@ include_directories(
 
 add_executable(${MCUX_SDK_PROJECT_NAME} 
 "${ProjDirPath}/../pin_mux.c"
-"${ProjDirPath}/../pin_mux.h"
 "${ProjDirPath}/../pin_mux_pwm.c"
 "${SdkRootDirPath}/core/boards/frdmmcxa156/board.c"
 "${SdkRootDirPath}/core/boards/frdmmcxa156/board.h"
@@ -70,6 +69,7 @@ add_executable(${MCUX_SDK_PROJECT_NAME}
 "${ProjDirPath}/../alarm_clock.c"
 "${ProjDirPath}/../uart.c"
 "${ProjDirPath}/../led.c"
+"${ProjDirPath}/../switch.c"
 )
 
 target_include_directories(${MCUX_SDK_PROJECT_NAME} PRIVATE
