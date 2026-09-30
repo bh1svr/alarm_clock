@@ -18,6 +18,25 @@
 #define DIN(x) GPIO_PinWrite(GPDIN, PINDIN, x);
 
 static void Write_Max7219(uchar address,uchar dat);
+static _Bool is_sleep;
+
+void enable_led()
+{
+    if (is_sleep)
+    {
+        Write_Max7219(0x0c, 0x01);       //掉电模式：0，普通模式：1
+        is_sleep = false;
+    }
+}
+
+void disable_led()
+{
+    if (!is_sleep)
+    {
+        Write_Max7219(0x0c, 0x00);       //掉电模式：0，普通模式：1
+        is_sleep = true;
+    }
+}
 
 static void init_pins_led()
 {
@@ -70,12 +89,6 @@ static void init_pins_led()
     PORT_SetPinConfig(PORT3,  1U, &port_led_config);
     PORT_SetPinConfig(PORT3, 31U, &port_led_config);
     PORT_SetPinConfig(PORT1, 14U, &port_led_config);
-}
-
-
-void Delay_xms(uint x)
-{
-    SDK_DelayAtLeastUs(x * 1000, SDK_DEVICE_MAXIMUM_CPU_CLOCK_FREQUENCY); 
 }
 
 //--------------------------------------------
@@ -146,7 +159,6 @@ void Init_MAX7219(void)
 
  Write_Max7219(0x0b, 0x07);       //扫描界限；4个数码管显示
 
- Write_Max7219(0x0c, 0x01);       //掉电模式：0，普通模式：1
 
  Write_Max7219(0x0f, 0x01);       //显示测试：1；测试结束，正常显示：0
 

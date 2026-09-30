@@ -1,4 +1,18 @@
 #include "uart.h"
+#include "gps_parser.h"
+
+void LPUART1_IRQHandler(void)
+{
+    uint8_t data;
+
+    /* If new data arrived. */
+    if ((kLPUART_RxDataRegFullFlag)&LPUART_GetStatusFlags(LPUART1))
+    {
+        data = LPUART_ReadByte(LPUART1);
+        GPS_ParseChar(data);
+    }
+    SDK_ISR_EXIT_BARRIER;
+}
 
 static void init_pins_lpuart0()
 {

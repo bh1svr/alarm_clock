@@ -28,17 +28,20 @@ volatile display_mode_t current_disp_mode = DISP_TIME;
 volatile _Bool is_alarm_enabled = true;
 volatile _Bool is_beeping = false;
 
-void LPUART1_IRQHandler(void)
+static void update_display()
 {
-    uint8_t data;
-
-    /* If new data arrived. */
-    if ((kLPUART_RxDataRegFullFlag)&LPUART_GetStatusFlags(LPUART1))
+    switch (current_disp_mode)
     {
-        data = LPUART_ReadByte(LPUART1);
-        GPS_ParseChar(data);
+        case DISP_OFF:
+            disable_led();
+            break;
+        case DISP_TIME:
+            enable_led();
+            display_time();
+            break;
+        default:
+            break;
     }
-    SDK_ISR_EXIT_BARRIER;
 }
 
 static void alarm_clock_check()
@@ -147,7 +150,7 @@ int main(void)
             is_rmc_ready = false;
             parse_gprmc(rmc);
             alarm_clock_check();
-            display_time();
+            update_display();
         }
         /*LED状态刷新*/
         if (is_alarm_enabled)
