@@ -28,8 +28,10 @@ volatile display_mode_t current_disp_mode = DISP_TIME;
 volatile _Bool is_alarm_enabled = true;
 volatile _Bool is_beeping = false;
 
+static void display_time(uint8_t *time_to_show);
 static void update_display()
 {
+    uint8_t to_show[LED_CNT];
     switch (current_disp_mode)
     {
         case DISP_OFF:
@@ -37,11 +39,24 @@ static void update_display()
             break;
         case DISP_TIME:
             enable_led();
-            display_time();
+            display_time(to_show);
             break;
         default:
             break;
     }
+    update_led(to_show);
+}
+
+static void display_time(uint8_t *time_to_show)
+{
+    time_to_show[0] = current_local_time.hour / 10;
+    time_to_show[1] = current_local_time.hour % 10;
+    time_to_show[2] = 0;
+    time_to_show[3] = current_local_time.minute / 10;
+    time_to_show[4] = current_local_time.minute % 10;
+    time_to_show[5] = 0;
+    time_to_show[6] = current_local_time.second / 10;
+    time_to_show[7] = current_local_time.second % 10;
 }
 
 static void alarm_clock_check()
@@ -144,13 +159,13 @@ int main(void)
     uint32_t cycle = 0;
     for (;;)
     {
+        update_display(); 
         /*收到GPS数据，解析并判断闹钟*/
         if (is_rmc_ready)
         {
             is_rmc_ready = false;
             parse_gprmc(rmc);
             alarm_clock_check();
-            update_display();
         }
         /*LED状态刷新*/
         if (is_alarm_enabled)

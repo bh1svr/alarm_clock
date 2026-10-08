@@ -2,11 +2,11 @@
 #include "fsl_port.h"
 #include "fsl_gpio.h"
 #include "gps_parser.h"
+#include "led.h"
 #include <stdint.h>
 
 #define uchar uint8_t
 #define uint  uint32_t
-
 #define GPCS   GPIO3
 #define PINCS  1U
 #define GPCLK  GPIO3
@@ -19,6 +19,20 @@
 
 static void Write_Max7219(uchar address,uchar dat);
 static _Bool is_sleep;
+
+void update_led(uint8_t *to_show)
+{
+    static uint8_t showing[LED_CNT];
+
+    for (uint8_t i = 0; i < LED_CNT; i++)
+    {
+        if (to_show[i] != showing[i])
+        {
+            Write_Max7219(8 - i, to_show[i]);
+            showing[i] = to_show[i];
+        }
+    }
+}
 
 void enable_led()
 {
@@ -122,15 +136,6 @@ void Write_Max7219_byte(uchar DATA)
         }                                 
 }
 
-void display_time()
-{
-    Write_Max7219(1, current_local_time.second % 10);
-    Write_Max7219(2, current_local_time.second / 10);
-    Write_Max7219(4, current_local_time.minute % 10);
-    Write_Max7219(5, current_local_time.minute / 10);
-    Write_Max7219(7, current_local_time.hour   % 10);
-    Write_Max7219(8, current_local_time.hour   / 10);
-}
 //-------------------------------------------
 
 //功能：向MAX7219写入数据
