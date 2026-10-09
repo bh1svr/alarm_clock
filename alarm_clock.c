@@ -27,19 +27,54 @@ extern int pwm_main(void);
 volatile display_mode_t current_disp_mode = DISP_TIME;
 volatile _Bool is_alarm_enabled = true;
 volatile _Bool is_beeping = false;
+volatile uint32_t gps_rand;
 
 static void display_time(uint8_t *time_to_show);
+
+void display_random(uint8_t *to_show)
+{
+    uint8_t temp;
+    uint32_t random_dup = gps_rand;
+    uint32_t divider = 10000000;
+    _Bool non_zero_showed = false;
+
+    for (uint8_t i = 0; i < LED_CNT; i++)
+    {
+        temp = random_dup / divider;
+        if (temp || non_zero_showed)
+        {
+            to_show[i] = temp;
+            non_zero_showed = true;
+        }
+        else
+        {
+            to_show[0] = 0x0F;
+        }
+        random_dup %= divider;
+        divider    /= 10;
+    }    
+}
+
 static void update_display()
 {
+    static _Bool random_showed;
     uint8_t to_show[LED_CNT];
     switch (current_disp_mode)
     {
         case DISP_OFF:
             disable_led();
+            random_showed = false;
             break;
         case DISP_TIME:
             enable_led();
             display_time(to_show);
+            break;
+        case DISP_RANDOM:
+            if (!random_showed)
+            {
+                display_random(to_show);
+                random_showed = true;
+            }
             break;
         default:
             break;
@@ -51,10 +86,10 @@ static void display_time(uint8_t *time_to_show)
 {
     time_to_show[0] = current_local_time.hour / 10;
     time_to_show[1] = current_local_time.hour % 10;
-    time_to_show[2] = 0;
+    time_to_show[2] = 0x0F;
     time_to_show[3] = current_local_time.minute / 10;
     time_to_show[4] = current_local_time.minute % 10;
-    time_to_show[5] = 0;
+    time_to_show[5] = 0x0F;
     time_to_show[6] = current_local_time.second / 10;
     time_to_show[7] = current_local_time.second % 10;
 }

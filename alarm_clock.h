@@ -5,6 +5,7 @@
 typedef enum {
     DISP_OFF,
     DISP_TIME,
+    DISP_RANDOM,
     /*DISP_MONTH_DAY,
     DISP_ALARM,
     DISP_TEMP*/
@@ -15,4 +16,5 @@ typedef enum {
 extern volatile display_mode_t current_disp_mode;
 extern volatile _Bool is_alarm_enabled;
 extern volatile _Bool is_beeping;
+extern volatile uint32_t gps_rand;
 #endif
