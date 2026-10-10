@@ -30,6 +30,7 @@ volatile _Bool is_beeping = false;
 volatile uint32_t gps_rand;
 
 static void display_time(uint8_t *time_to_show);
+static void display_date(uint8_t *to_show);
 
 void display_random(uint8_t *to_show)
 {
@@ -76,10 +77,26 @@ static void update_display()
                 random_showed = true;
             }
             break;
+        case DISP_DATE:
+            display_date(to_show); 
+            break;
         default:
             break;
     }
     update_led(to_show);
+}
+
+static void display_date(uint8_t *to_show)
+{
+    uint8_t year_2digits = current_local_time.year - 2000;
+    to_show[0] = year_2digits / 10;
+    to_show[1] = (year_2digits % 10) | DOT;
+    to_show[2] = current_local_time.month / 10;
+    to_show[3] = (current_local_time.month % 10) | DOT;
+    to_show[4] = current_local_time.day / 10;
+    to_show[5] = current_local_time.day % 10;
+    to_show[6] = BLANK;
+    to_show[7] = (current_local_time.weekday == 0) ? 8 : current_local_time.weekday;
 }
 
 static void display_time(uint8_t *time_to_show)

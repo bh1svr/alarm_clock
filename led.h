@@ -1,6 +1,8 @@
 #ifndef LED_H
 #define LED_H
 #define LED_CNT 8
+#define DOT     0x80
+#define BLANK   0x0F
 void init_led(void);
 void disable_led(void);
 void enable_led(void);
