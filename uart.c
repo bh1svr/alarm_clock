@@ -134,7 +134,7 @@ static void init_pins_lpuart1()
     PORT_SetPinConfig(PORT3, 21U, &port3_21_pin54_config);
 }
 
-void init_lpuart0()
+void init_lpuart0() /*本函数相当于SDK的InitDebugConsole函数*/
 {
     init_pins_lpuart0();
     /* attach 12 MHz clock to FLEXCOMM0 (debug console) */
@@ -145,7 +145,6 @@ void init_lpuart0()
 
     DbgConsole_Init(BOARD_DEBUG_UART_INSTANCE, BOARD_DEBUG_UART_BAUDRATE, BOARD_DEBUG_UART_TYPE,
                     BOARD_DEBUG_UART_CLK_FREQ);
-
 }
 
 void init_lpuart1()

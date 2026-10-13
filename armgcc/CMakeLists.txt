@@ -56,10 +56,6 @@ include_directories(
 add_executable(${MCUX_SDK_PROJECT_NAME} 
 "${ProjDirPath}/../pin_mux.c"
 "${ProjDirPath}/../pin_mux_pwm.c"
-"${SdkRootDirPath}/core/boards/frdmmcxa156/board.c"
-"${SdkRootDirPath}/core/boards/frdmmcxa156/board.h"
-"${SdkRootDirPath}/core/boards/frdmmcxa156/clock_config.c"
-"${SdkRootDirPath}/core/boards/frdmmcxa156/clock_config.h"
 "${ProjDirPath}/../clock_config.c"
 "${ProjDirPath}/../clock_config.h"
 "${ProjDirPath}/../gps_parser.c"
@@ -70,6 +66,10 @@ add_executable(${MCUX_SDK_PROJECT_NAME}
 "${ProjDirPath}/../uart.c"
 "${ProjDirPath}/../led.c"
 "${ProjDirPath}/../switch.c"
+"${ProjDirPath}/../i3c_master_read_sensor_p3t1755.c"
+"${ProjDirPath}/../pin_mux_i3c.c"
+"${ProjDirPath}/../fsl_p3t1755.c"
+"${ProjDirPath}/../fsl_i3c.c"
 )
 
 target_include_directories(${MCUX_SDK_PROJECT_NAME} PRIVATE

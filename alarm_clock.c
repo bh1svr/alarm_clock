@@ -4,7 +4,9 @@
 #include "fsl_pwm.h"
 #include "fsl_reset.h"
 #include "gps_parser.h"
+#include "i3c_master_read_sensor_p3t1755.h"
 #include "led.h"
+#include "math.h"
 #include "pin_mux.h"
 #include "pwm.h"
 #include <stdbool.h>
@@ -31,6 +33,7 @@ volatile uint32_t gps_rand;
 
 static void display_time(uint8_t *time_to_show);
 static void display_date(uint8_t *to_show);
+static void display_temp(uint8_t *to_show);
 
 void display_random(uint8_t *to_show)
 {
@@ -80,10 +83,21 @@ static void update_display()
         case DISP_DATE:
             display_date(to_show); 
             break;
+        case DISP_TEMP:
+            display_temp(to_show);
+            break;
         default:
             break;
     }
     update_led(to_show);
+}
+
+static void display_temp(uint8_t *to_show)
+{
+    double temp = get_temp();
+    to_show[0] = temp / 10;
+    to_show[1] = remainder(temp, 10) + DOT;
+    to_show[2] = remainder(temp * 10, 10);
 }
 
 static void display_date(uint8_t *to_show)
@@ -138,8 +152,8 @@ static void alarm_clock_check()
             is_alarm_triggered = false;
             
             // 1. 周五闹钟响完后自动 disable 的逻辑
-            if (current_local_time.weekday == 5)    /*周五*/
-            { // 5 = Friday
+            if ((current_local_time.weekday == 5) || (current_local_time.weekday == 6))    /*周五、周六*/
+            {
                 is_alarm_enabled = false;
             }
             /*周六、周日或周一至周五人为关掉了闹钟*/
@@ -206,18 +220,26 @@ int main(void)
 
     pwm_main();
     init_led();
+    init_i3c_p3t1755();
     self_test();
     
     uint32_t cycle = 0;
+    display_mode_t last_disp_mode = DISP_MAX;
     for (;;)
     {
-        update_display(); 
         /*收到GPS数据，解析并判断闹钟*/
         if (is_rmc_ready)
         {
             is_rmc_ready = false;
             parse_gprmc(rmc);
+            update_display();
             alarm_clock_check();
+            read_temp();
+        }
+        if (last_disp_mode != current_disp_mode)
+        {
+            update_display(); 
+            last_disp_mode = current_disp_mode;
         }
         /*LED状态刷新*/
         if (is_alarm_enabled)

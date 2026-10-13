@@ -7,8 +7,8 @@ typedef enum {
     DISP_TIME,
     DISP_RANDOM,
     DISP_DATE,
-    /*DISP_ALARM,
-    DISP_TEMP*/
+    DISP_TEMP,
+    /*DISP_ALARM*/
     DISP_MAX
 } display_mode_t;
 
