@@ -22,7 +22,7 @@ static _Bool is_sleep;
 
 void update_led(uint8_t *to_show)
 {
-    static uint8_t showing[LED_CNT];
+    static uint8_t showing[LED_CNT] = {BLANK, BLANK, BLANK, BLANK, BLANK, BLANK, BLANK, BLANK};
 
     for (uint8_t i = 0; i < LED_CNT; i++)
     {
@@ -163,19 +163,16 @@ void Init_MAX7219(void)
  Write_Max7219(0x0a, 0x03);       //亮度
 
  Write_Max7219(0x0b, 0x07);       //扫描界限；4个数码管显示
-
-
- Write_Max7219(0x0f, 0x01);       //显示测试：1；测试结束，正常显示：0
-
 }
 
 void init_led(void)
 {
- init_pins_led();
- Init_MAX7219();
- Write_Max7219(0x0f, 0x00);       //显示测试：1；测试结束，正常显示：0
- Write_Max7219(3, 0xF);
- Write_Max7219(6, 0xF);
+    init_pins_led();
+    Init_MAX7219();
+    for (uint8_t i = 1; i <= LED_CNT; i++)
+    {
+        Write_Max7219(i, BLANK);
+    }
 }
 
 

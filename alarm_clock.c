@@ -52,7 +52,7 @@ void display_random(uint8_t *to_show)
         }
         else
         {
-            to_show[0] = 0x0F;
+            to_show[i] = 0x0F;
         }
         random_dup %= divider;
         divider    /= 10;
@@ -72,24 +72,27 @@ static void update_display()
         case DISP_TIME:
             enable_led();
             display_time(to_show);
+            update_led(to_show);
             break;
         case DISP_RANDOM:
             if (!random_showed)
             {
                 display_random(to_show);
                 random_showed = true;
+                update_led(to_show);
             }
             break;
         case DISP_DATE:
-            display_date(to_show); 
+            display_date(to_show);
+            update_led(to_show);
             break;
         case DISP_TEMP:
             display_temp(to_show);
+            update_led(to_show);
             break;
         default:
             break;
     }
-    update_led(to_show);
 }
 
 static void display_temp(uint8_t *to_show)
@@ -213,6 +216,11 @@ int main(void)
     GPIO_SetPinInterruptConfig(BOARD_SW2_GPIO, BOARD_SW2_GPIO_PIN, kGPIO_InterruptFallingEdge);
     EnableIRQ(BOARD_SW2_IRQ);
     GPIO_PinInit(BOARD_SW2_GPIO, BOARD_SW2_GPIO_PIN, &sw_config);
+
+    CLOCK_EnableClock(kCLOCK_GateGPIO0);
+    CLOCK_EnableClock(kCLOCK_GatePORT0);
+    RESET_ReleasePeripheralReset(kGPIO0_RST_SHIFT_RSTn);
+    RESET_ReleasePeripheralReset(kPORT0_RST_SHIFT_RSTn);
 
     GPIO_SetPinInterruptConfig(BOARD_SW3_GPIO, BOARD_SW3_GPIO_PIN, kGPIO_InterruptFallingEdge);
     EnableIRQ(BOARD_SW3_IRQ);
