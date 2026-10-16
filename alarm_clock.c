@@ -97,10 +97,16 @@ static void update_display()
 
 static void display_temp(uint8_t *to_show)
 {
-    double temp = get_temp();
-    to_show[0] = temp / 10;
-    to_show[1] = remainder(temp, 10) + DOT;
-    to_show[2] = remainder(temp * 10, 10);
+    int temp = (int) round(get_temp() * 10);
+    to_show[0] = temp / 100;
+    temp      %= 100;
+    to_show[1] = (temp / 10) | DOT;
+    to_show[2] = temp % 10;
+    to_show[3] = BLANK;
+    to_show[4] = BLANK;
+    to_show[5] = BLANK;
+    to_show[6] = BLANK;
+    to_show[7] = BLANK;
 }
 
 static void display_date(uint8_t *to_show)

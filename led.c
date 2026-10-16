@@ -169,6 +169,7 @@ void init_led(void)
 {
     init_pins_led();
     Init_MAX7219();
+    Write_Max7219(0x0f, 0x00);       //显示测试：1；测试结束，正常显示：0
     for (uint8_t i = 1; i <= LED_CNT; i++)
     {
         Write_Max7219(i, BLANK);
