@@ -39,6 +39,7 @@ void display_random(uint8_t *to_show)
 {
     uint8_t temp;
     uint32_t random_dup = gps_rand;
+    random_dup %= 99999999;
     uint32_t divider = 10000000;
     _Bool non_zero_showed = false;
 
@@ -124,12 +125,20 @@ static void display_date(uint8_t *to_show)
 
 static void display_time(uint8_t *time_to_show)
 {
-    time_to_show[0] = current_local_time.hour / 10;
+    uint8_t hour2 = current_local_time.hour / 10;
+    if (hour2)
+    {
+        time_to_show[0] = hour2;
+    }
+    else
+    {
+        time_to_show[0]= BLANK;
+    }
     time_to_show[1] = current_local_time.hour % 10;
-    time_to_show[2] = 0x0F;
+    time_to_show[2] = BLANK;
     time_to_show[3] = current_local_time.minute / 10;
     time_to_show[4] = current_local_time.minute % 10;
-    time_to_show[5] = 0x0F;
+    time_to_show[5] = BLANK;
     time_to_show[6] = current_local_time.second / 10;
     time_to_show[7] = current_local_time.second % 10;
 }
