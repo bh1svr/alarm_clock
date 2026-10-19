@@ -256,6 +256,10 @@ void read_temp()
             temp_cnt = MAX_TEMP_CNT;
         }
     }
+    else
+    {
+        init_i3c_p3t1755();
+    }
 }
 
 

@@ -18,7 +18,7 @@
 #define DIN(x) GPIO_PinWrite(GPDIN, PINDIN, x);
 
 static void Write_Max7219(uchar address,uchar dat);
-static _Bool is_sleep;
+static _Bool is_sleep = true;
 
 void update_led(uint8_t *to_show)
 {

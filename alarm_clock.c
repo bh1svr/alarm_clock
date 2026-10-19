@@ -78,16 +78,19 @@ static void update_display()
         case DISP_RANDOM:
             if (!random_showed)
             {
+                enable_led();
                 display_random(to_show);
                 random_showed = true;
                 update_led(to_show);
             }
             break;
         case DISP_DATE:
+            enable_led();
             display_date(to_show);
             update_led(to_show);
             break;
         case DISP_TEMP:
+            enable_led();
             display_temp(to_show);
             update_led(to_show);
             break;
@@ -170,12 +173,12 @@ static void alarm_clock_check()
             is_alarm_triggered = false;
             
             // 1. 周五闹钟响完后自动 disable 的逻辑
-            if ((current_local_time.weekday == 5) || (current_local_time.weekday == 6))    /*周五、周六*/
+            if ((current_local_time.weekday == 5) || (current_local_time.weekday == 6))    /*周五、周六,明天这个时间闹钟默认不响*/
             {
                 is_alarm_enabled = false;
             }
             /*周六、周日或周一至周五人为关掉了闹钟*/
-            else if (current_local_time.weekday == 0)    /*周日*/
+            else if (current_local_time.weekday < 5)    /*周日~周四,明天这个时间闹钟默认要响*/
             {
                 is_alarm_enabled = true;
             }
@@ -196,7 +199,7 @@ static void self_test()
         ;
     }
     BEEP_ON();
-    SDK_DelayAtLeastUs(9e5, SDK_DEVICE_MAXIMUM_CPU_CLOCK_FREQUENCY);
+    SDK_DelayAtLeastUs(1e6, SDK_DEVICE_MAXIMUM_CPU_CLOCK_FREQUENCY);
 }
 
 int main(void)
@@ -242,10 +245,10 @@ int main(void)
     GPIO_PinInit(BOARD_SW3_GPIO, BOARD_SW3_GPIO_PIN, &sw_config);
 
     pwm_main();
+    self_test();
     init_led();
     init_i3c_p3t1755();
-    self_test();
-    
+
     uint32_t cycle = 0;
     display_mode_t last_disp_mode = DISP_MAX;
     for (;;)

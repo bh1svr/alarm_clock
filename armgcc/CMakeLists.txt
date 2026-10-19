@@ -70,6 +70,7 @@ add_executable(${MCUX_SDK_PROJECT_NAME}
 "${ProjDirPath}/../pin_mux_i3c.c"
 "${ProjDirPath}/../fsl_p3t1755.c"
 "${ProjDirPath}/../fsl_i3c.c"
+"${ProjDirPath}/../fsl_sbrk.c"
 )
 
 target_include_directories(${MCUX_SDK_PROJECT_NAME} PRIVATE
