@@ -3,17 +3,13 @@
 #include "clock_config.h"
 #include "board.h"
 #include "fsl_pwm.h"
-
 #include "fsl_device_registers.h"
-#include "fsl_inputmux.h"
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
 #define BOARD_PWM_BASEADDR     (FLEXPWM0)
 #define PWM_SRC_CLK_FREQ       (CLOCK_GetFreq(kCLOCK_BusClk))
 #define DEMO_PWM_CLOCK_DEVIDER (kPWM_Prescale_Divide_2)
-#define DEMO_PWM_FAULT_LEVEL   true
-
 #define BOARD_LED_GPIO     BOARD_LED_RED_GPIO
 #define BOARD_LED_GPIO_PIN BOARD_LED_RED_GPIO_PIN
 
@@ -63,12 +59,6 @@ int pwm_main(void)
     /* Board pin, clock, debug console init */
     BOARD_InitPWMPins();
 
-    INPUTMUX_Init(INPUTMUX0);
-    INPUTMUX_AttachSignal(INPUTMUX0, 0U, kINPUTMUX_TrigIn5ToFlexPwm0Fault);
-    INPUTMUX_AttachSignal(INPUTMUX0, 1U, kINPUTMUX_TrigIn8ToFlexPwm0Fault);
-    INPUTMUX_AttachSignal(INPUTMUX0, 2U, kINPUTMUX_TrigIn9ToFlexPwm0Fault);
-    INPUTMUX_AttachSignal(INPUTMUX0, 3U, kINPUTMUX_TrigIn10ToFlexPwm0Fault);
-
     PWM_GetDefaultConfig(&pwmConfig);
     pwmConfig.prescale = DEMO_PWM_CLOCK_DEVIDER;
 
@@ -103,7 +93,7 @@ int pwm_main(void)
     }
 
     PWM_FaultDefaultConfig(&faultConfig);
-    faultConfig.faultLevel = DEMO_PWM_FAULT_LEVEL;
+    faultConfig.faultLevel = true;
 
     /* Sets up the PWM fault protection */
     PWM_SetupFaults(BOARD_PWM_BASEADDR, kPWM_Fault_0, &faultConfig);
@@ -112,9 +102,9 @@ int pwm_main(void)
     PWM_SetupFaults(BOARD_PWM_BASEADDR, kPWM_Fault_3, &faultConfig);
 
     /* Set PWM fault disable mapping for submodule 0/1/2 */
-    PWM_SetupFaultDisableMap(BOARD_PWM_BASEADDR, kPWM_Module_0, kPWM_PwmA, kPWM_faultchannel_0,
-                             kPWM_FaultDisable_0 | kPWM_FaultDisable_1 | kPWM_FaultDisable_2 | kPWM_FaultDisable_3);
-
+    PWM_SetupFaultDisableMap(BOARD_PWM_BASEADDR, kPWM_Module_0, kPWM_PwmA, kPWM_faultchannel_0, 0);
+    /* 清掉可能残留的故障标志(FSTS),防止手动清除模式下标志挂死 */
+    PWM_ClearStatusFlags(BOARD_PWM_BASEADDR, kPWM_Module_0, kPWM_Fault0Flag | kPWM_Fault1Flag | kPWM_Fault2Flag | kPWM_Fault3Flag);
     /* Call the init function with demo configuration */
     PWM_DRV_InitPwm(4200);
 

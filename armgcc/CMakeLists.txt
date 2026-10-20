@@ -35,7 +35,6 @@ endif()
 SET(EXECUTABLE_OUTPUT_PATH ${ProjDirPath}/${CMAKE_BUILD_TYPE})
 SET(LIBRARY_OUTPUT_PATH ${ProjDirPath}/${CMAKE_BUILD_TYPE})
 
-
 project(alarm_clock)
 
 set(MCUX_BUILD_TYPES debug release)
@@ -60,7 +59,6 @@ add_executable(${MCUX_SDK_PROJECT_NAME}
 "${ProjDirPath}/../clock_config.h"
 "${ProjDirPath}/../gps_parser.c"
 "${ProjDirPath}/../pwm.c"
-"${ProjDirPath}/../fsl_inputmux.c"
 "${ProjDirPath}/../fsl_pwm.c"
 "${ProjDirPath}/../alarm_clock.c"
 "${ProjDirPath}/../uart.c"
@@ -81,6 +79,10 @@ target_include_directories(${MCUX_SDK_PROJECT_NAME} PRIVATE
 
 include(${SdkRootDirPath}/core/devices/MCXA156/all_lib_device.cmake)
 
+set_source_files_properties(
+    ${SdkRootDirPath}/core/devices/MCXA156/utilities/fsl_sbrk.c
+    PROPERTIES HEADER_FILE_ONLY TRUE
+)
 IF(NOT DEFINED TARGET_LINK_SYSTEM_LIBRARIES)  
     SET(TARGET_LINK_SYSTEM_LIBRARIES "-lm -lc -lgcc -lnosys")  
 ENDIF()  
