@@ -165,6 +165,24 @@ static void alarm_clock_check()
         }
         is_alarm_triggered = true;
     }
+    /*每天凌晨1:30及工作日7:30关闭LED*/
+    else if (  (current_local_time.hour == 1 && current_local_time.minute == 30 && current_local_time.second == 0)
+            ||   ((current_local_time.hour == 7 && current_local_time.minute == 30 && current_local_time.second == 0)
+              && (current_local_time.weekday >= 1 && current_local_time.weekday <= 5)
+                 )
+            )
+    {
+        current_disp_mode = DISP_OFF;
+    }
+    /*每天清晨5:30及工作日18:30打开LED*/
+    else if (  (current_local_time.hour == 5 && current_local_time.minute == 30 && current_local_time.second == 0)
+            ||   ((current_local_time.hour == 18 && current_local_time.minute == 30 && current_local_time.second == 0)
+              && (current_local_time.weekday >= 1 && current_local_time.weekday <= 5)
+                 )
+            )
+    {
+        current_disp_mode = DISP_TIME;
+    }
     else
     {
         if (is_alarm_triggered)
@@ -200,6 +218,8 @@ static void self_test()
     }
     BEEP_ON();
     SDK_DelayAtLeastUs(1e6, SDK_DEVICE_MAXIMUM_CPU_CLOCK_FREQUENCY);
+    BEEP_OFF();
+    LED_RED_OFF();
 }
 
 int main(void)

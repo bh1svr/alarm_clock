@@ -77,12 +77,8 @@ target_include_directories(${MCUX_SDK_PROJECT_NAME} PRIVATE
 )
 
 
-include(${SdkRootDirPath}/core/devices/MCXA156/all_lib_device.cmake)
+#include(${SdkRootDirPath}/core/devices/MCXA156/all_lib_device.cmake)
 
-set_source_files_properties(
-    ${SdkRootDirPath}/core/devices/MCXA156/utilities/fsl_sbrk.c
-    PROPERTIES HEADER_FILE_ONLY TRUE
-)
 IF(NOT DEFINED TARGET_LINK_SYSTEM_LIBRARIES)  
     SET(TARGET_LINK_SYSTEM_LIBRARIES "-lm -lc -lgcc -lnosys")  
 ENDIF()  
