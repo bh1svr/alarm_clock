@@ -4,6 +4,7 @@
 // 显示模式枚举
 typedef enum {
     DISP_OFF,
+    DISP_MIN_TEMP,
     DISP_TIME,
     DISP_RANDOM,
     DISP_DATE,

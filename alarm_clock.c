@@ -18,6 +18,7 @@
  * P3_20 LPUART1_RX
  * P3_21 LPUART1_TX
  * P3_31 LED_CLK*/
+#define DEFAULT_DISP_MODE  DISP_MIN_TEMP
 #define BOARD_LED_GPIO     BOARD_LED_RED_GPIO
 #define BOARD_LED_GPIO_PIN BOARD_LED_RED_GPIO_PIN
 #define BEEP_ON()            PWM_StartTimer(FLEXPWM0, kPWM_Control_Module_0);
@@ -26,7 +27,7 @@
 extern int pwm_main(void);
 
 // 全局状态变量
-volatile display_mode_t current_disp_mode = DISP_TIME;
+volatile display_mode_t current_disp_mode = DEFAULT_DISP_MODE;
 volatile _Bool is_alarm_enabled = true;
 volatile _Bool is_beeping = false;
 volatile uint32_t gps_rand;
@@ -34,6 +35,7 @@ volatile uint32_t gps_rand;
 static void display_time(uint8_t *time_to_show);
 static void display_date(uint8_t *to_show);
 static void display_temp(uint8_t *to_show);
+static void display_min_temp(uint8_t *time_to_show);
 
 void display_random(uint8_t *to_show)
 {
@@ -69,6 +71,11 @@ static void update_display()
         case DISP_OFF:
             disable_led();
             random_showed = false;
+            break;
+        case DISP_MIN_TEMP:
+            enable_led();
+            display_min_temp(to_show);
+            update_led(to_show);
             break;
         case DISP_TIME:
             enable_led();
@@ -126,6 +133,37 @@ static void display_date(uint8_t *to_show)
     to_show[7] = (current_local_time.weekday == 0) ? 8 : current_local_time.weekday;
 }
 
+static void display_min_temp(uint8_t *time_to_show)
+{
+    uint8_t hour2 = current_local_time.hour / 10;
+    if (hour2)
+    {
+        time_to_show[0] = hour2;
+    }
+    else
+    {
+        time_to_show[0]= BLANK;
+    }
+    uint8_t hour1 = current_local_time.hour % 10;
+    if (current_local_time.second % 2)
+    {
+        time_to_show[1] = hour1 | DOT;
+    }
+    else
+    {
+        time_to_show[1] = hour1;
+    }
+    time_to_show[2] = current_local_time.minute / 10;
+    time_to_show[3] = current_local_time.minute % 10;
+    time_to_show[4] = BLANK;
+
+    int temp = (int) round(get_temp() * 10);
+    time_to_show[5] = temp / 100;
+    temp      %= 100;
+    time_to_show[6] = (temp / 10) | DOT;
+    time_to_show[7] = temp % 10;
+}
+
 static void display_time(uint8_t *time_to_show)
 {
     uint8_t hour2 = current_local_time.hour / 10;
@@ -164,6 +202,7 @@ static void alarm_clock_check()
             is_beeping = true;
         }
         is_alarm_triggered = true;
+        current_disp_mode = DEFAULT_DISP_MODE;
     }
     /*每天凌晨1:30及工作日7:30关闭LED*/
     else if (  (current_local_time.hour == 1 && current_local_time.minute == 30 && current_local_time.second == 0)
@@ -174,14 +213,12 @@ static void alarm_clock_check()
     {
         current_disp_mode = DISP_OFF;
     }
-    /*每天清晨5:30及工作日18:30打开LED*/
-    else if (  (current_local_time.hour == 5 && current_local_time.minute == 30 && current_local_time.second == 0)
-            ||   ((current_local_time.hour == 18 && current_local_time.minute == 30 && current_local_time.second == 0)
+    /*每个工作日18:30打开LED*/
+    else if ((current_local_time.hour == 18 && current_local_time.minute == 30 && current_local_time.second == 0)
               && (current_local_time.weekday >= 1 && current_local_time.weekday <= 5)
-                 )
             )
     {
-        current_disp_mode = DISP_TIME;
+        current_disp_mode = DEFAULT_DISP_MODE;
     }
     else
     {
@@ -222,8 +259,36 @@ static void self_test()
     LED_RED_OFF();
 }
 
+void init_clock_reset()
+{
+    CLOCK_EnableClock(kCLOCK_GateGPIO0);
+    CLOCK_EnableClock(kCLOCK_GateGPIO1);
+    /* GPIO3: Peripheral clock is enabled */
+    CLOCK_EnableClock(kCLOCK_GateGPIO3);
+    /* PORT0: Peripheral clock is enabled */
+    CLOCK_EnableClock(kCLOCK_GatePORT0);
+    /* PORT0: Peripheral clock is enabled */
+    CLOCK_EnableClock(kCLOCK_GatePORT1);
+    /* PORT2: Peripheral clock is enabled */
+    CLOCK_EnableClock(kCLOCK_GatePORT2);
+    /* PORT3: Peripheral clock is enabled */
+    CLOCK_EnableClock(kCLOCK_GatePORT3);
+    
+    RESET_ReleasePeripheralReset(kGPIO1_RST_SHIFT_RSTn);
+    /* GPIO3 peripheral is released from reset */
+    RESET_ReleasePeripheralReset(kGPIO3_RST_SHIFT_RSTn);
+    /* PORT0 peripheral is released from reset */
+    RESET_ReleasePeripheralReset(kPORT0_RST_SHIFT_RSTn);
+    RESET_ReleasePeripheralReset(kPORT1_RST_SHIFT_RSTn);
+    /* PORT2 peripheral is released from reset */
+    RESET_ReleasePeripheralReset(kPORT2_RST_SHIFT_RSTn);
+    /* PORT3 peripheral is released from reset */
+    RESET_ReleasePeripheralReset(kPORT3_RST_SHIFT_RSTn);
+}
+
 int main(void)
 {
+    init_clock_reset();
     BOARD_InitPins();
     BOARD_InitBootClocks();
     init_lpuart0();
@@ -240,14 +305,6 @@ int main(void)
         0,
     };
 
-    /* Board pin, clock, debug console init */
-    /* Release peripheral reset */
-    RESET_ReleasePeripheralReset(kLPUART0_RST_SHIFT_RSTn);
-    RESET_ReleasePeripheralReset(kPORT0_RST_SHIFT_RSTn);
-    RESET_ReleasePeripheralReset(kPORT1_RST_SHIFT_RSTn);
-    RESET_ReleasePeripheralReset(kGPIO1_RST_SHIFT_RSTn);
-    CLOCK_EnableClock(kCLOCK_GateGPIO1);
-    
     /* Init output LED GPIO. */
     GPIO_PinInit(BOARD_LED_GPIO, BOARD_LED_GPIO_PIN, &led_config);
 
@@ -255,10 +312,6 @@ int main(void)
     EnableIRQ(BOARD_SW2_IRQ);
     GPIO_PinInit(BOARD_SW2_GPIO, BOARD_SW2_GPIO_PIN, &sw_config);
 
-    CLOCK_EnableClock(kCLOCK_GateGPIO0);
-    CLOCK_EnableClock(kCLOCK_GatePORT0);
-    RESET_ReleasePeripheralReset(kGPIO0_RST_SHIFT_RSTn);
-    RESET_ReleasePeripheralReset(kPORT0_RST_SHIFT_RSTn);
 
     GPIO_SetPinInterruptConfig(BOARD_SW3_GPIO, BOARD_SW3_GPIO_PIN, kGPIO_InterruptFallingEdge);
     EnableIRQ(BOARD_SW3_IRQ);

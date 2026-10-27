@@ -54,23 +54,7 @@ void disable_led()
 
 static void init_pins_led()
 {
-    CLOCK_EnableClock(kCLOCK_GateGPIO1);
-    /* GPIO3: Peripheral clock is enabled */
-    CLOCK_EnableClock(kCLOCK_GateGPIO3);
-    /* PORT0: Peripheral clock is enabled */
-    CLOCK_EnableClock(kCLOCK_GatePORT1);
-    /* PORT3: Peripheral clock is enabled */
-    CLOCK_EnableClock(kCLOCK_GatePORT3);
-
-    RESET_ReleasePeripheralReset(kGPIO1_RST_SHIFT_RSTn);
-    /* GPIO3 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kGPIO3_RST_SHIFT_RSTn);
-    /* PORT0 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kPORT1_RST_SHIFT_RSTn);
-    /* PORT3 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kPORT3_RST_SHIFT_RSTn);
-
-    gpio_pin_config_t gpio_led_config = {
+        gpio_pin_config_t gpio_led_config = {
         .pinDirection = kGPIO_DigitalOutput,
         .outputLogic = 0U
     };

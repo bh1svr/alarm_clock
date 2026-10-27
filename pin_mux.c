@@ -10,21 +10,6 @@ void BOARD_InitBootPins(void)
 
 void BOARD_InitPins(void)
 {
-/* GPIO3: Peripheral clock is enabled */
-    CLOCK_EnableClock(kCLOCK_GateGPIO3);
-    /* PORT0: Peripheral clock is enabled */
-    CLOCK_EnableClock(kCLOCK_GatePORT0);
-    /* PORT3: Peripheral clock is enabled */
-    CLOCK_EnableClock(kCLOCK_GatePORT3);
-    /* GPIO3 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kGPIO3_RST_SHIFT_RSTn);
-    /* LPUART0 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kLPUART0_RST_SHIFT_RSTn);
-    /* PORT0 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kPORT0_RST_SHIFT_RSTn);
-    /* PORT3 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kPORT3_RST_SHIFT_RSTn);
-
     gpio_pin_config_t gpio3_pin63_config = {
         .pinDirection = kGPIO_DigitalOutput,
         .outputLogic = 0U
@@ -56,29 +41,6 @@ void BOARD_InitPins(void)
                                                      kPORT_UnlockRegister};
     /* PORT3_12 (pin 63) is configured as P3_12 */
     PORT_SetPinConfig(PORT3, 12U, &port3_12_pin63_config);
-
-    /* GPIO1: Peripheral clock is enabled */
-    CLOCK_EnableClock(kCLOCK_GateGPIO1);
-    /* GPIO3: Peripheral clock is enabled */
-    CLOCK_EnableClock(kCLOCK_GateGPIO3);
-    /* PORT0: Peripheral clock is enabled */
-    CLOCK_EnableClock(kCLOCK_GatePORT0);
-    /* PORT1: Peripheral clock is enabled */
-    CLOCK_EnableClock(kCLOCK_GatePORT1);
-    /* PORT3: Peripheral clock is enabled */
-    CLOCK_EnableClock(kCLOCK_GatePORT3);
-    /* GPIO1 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kGPIO1_RST_SHIFT_RSTn);
-    /* GPIO3 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kGPIO3_RST_SHIFT_RSTn);
-    /* LPUART0 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kLPUART0_RST_SHIFT_RSTn);
-    /* PORT0 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kPORT0_RST_SHIFT_RSTn);
-    /* PORT1 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kPORT1_RST_SHIFT_RSTn);
-    /* PORT3 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kPORT3_RST_SHIFT_RSTn);
 
     gpio_pin_config_t gpio1_pin100_config = {
         .pinDirection = kGPIO_DigitalInput,

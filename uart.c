@@ -16,12 +16,8 @@ void LPUART1_IRQHandler(void)
 
 static void init_pins_lpuart0()
 {
-    /* PORT0: Peripheral clock is enabled */
-    CLOCK_EnableClock(kCLOCK_GatePORT0);
     /* LPUART0 peripheral is released from reset */
     RESET_ReleasePeripheralReset(kLPUART0_RST_SHIFT_RSTn);
-    /* PORT0 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kPORT0_RST_SHIFT_RSTn);
 
     const port_pin_config_t port0_2_pin78_config = {/* Internal pull-up resistor is enabled */
                                                     kPORT_PullUp,
@@ -76,12 +72,8 @@ static void init_pins_lpuart0()
 
 static void init_pins_lpuart1()
 {
-    /* PORT3: Peripheral clock is enabled */
-    CLOCK_EnableClock(kCLOCK_GatePORT3);
     /* LPUART1 peripheral is released from reset */
     RESET_ReleasePeripheralReset(kLPUART1_RST_SHIFT_RSTn);
-    /* PORT3 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kPORT3_RST_SHIFT_RSTn);
 
     const port_pin_config_t port3_20_pin55_config = {/* Internal pull-up resistor is enabled */
                                                      kPORT_PullUp,

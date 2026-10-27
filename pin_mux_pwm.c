@@ -4,25 +4,9 @@
 
 void BOARD_InitPWMPins(void)
 {
-    /* PORT0: Peripheral clock is enabled */
-    CLOCK_EnableClock(kCLOCK_GatePORT0);
-    /* PORT2: Peripheral clock is enabled */
-    CLOCK_EnableClock(kCLOCK_GatePORT2);
-    /* PORT3: Peripheral clock is enabled */
-    CLOCK_EnableClock(kCLOCK_GatePORT3);
-    /* LPUART0 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kLPUART0_RST_SHIFT_RSTn);
-    /* PORT0 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kPORT0_RST_SHIFT_RSTn);
-    /* INPUTMUX0 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kINPUTMUX0_RST_SHIFT_RSTn);
-    /* PORT2 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kPORT2_RST_SHIFT_RSTn);
     /* FLEXPWM0 peripheral is released from reset */
     RESET_ReleasePeripheralReset(kFLEXPWM0_RST_SHIFT_RSTn);
-    /* PORT3 peripheral is released from reset */
-    RESET_ReleasePeripheralReset(kPORT3_RST_SHIFT_RSTn);
-
+    /* PORT0: Peripheral clock is enabled */
     const port_pin_config_t port3_6_pin71_config = {/* Internal pull-up/down resistor is disabled */
                                                     kPORT_PullDisable,
                                                     /* Low internal pull resistor value is selected. */

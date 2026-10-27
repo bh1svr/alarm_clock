@@ -238,7 +238,8 @@ double get_temp()
     {
         sum += total_temp[i];
     }
-    return sum / temp_cnt;
+    return (sum / temp_cnt) - 1.5;
+    /*20251022 显示22.5, 参考21.0*/
 }
 
 void read_temp()
