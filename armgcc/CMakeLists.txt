@@ -70,6 +70,7 @@ add_executable(${MCUX_SDK_PROJECT_NAME}
 "${ProjDirPath}/../fsl_i3c.c"
 "${ProjDirPath}/../fsl_sbrk.c"
 "${ProjDirPath}/../fsl_syscall_stub.c"
+"${ProjDirPath}/../fsl_memcpy.S"
 )
 
 target_include_directories(${MCUX_SDK_PROJECT_NAME} PRIVATE

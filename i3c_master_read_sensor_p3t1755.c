@@ -6,7 +6,14 @@
 #include "clock_config.h"
 #include "board.h"
 
-#define MAX_TEMP_CNT               128
+/*******************************************************************************
+ * 滤波参数
+ ******************************************************************************/
+#define I3C_TEMP_REG        0x00U   /* P3T1755 Temperature寄存器指针 */
+#define IIR_SHIFT           5U      /* alpha = 1/32，越大响应越快、越不平滑 */
+#define IIR_FRAC_BITS       8       /* 定点小数位数：raw(1/16°C)再左移8位 → 分辨率1/4096°C */
+/* 偏移量的定点形式：-1.5°C = -24个raw(1/16°C)，再换算到Q8 */
+#define TEMP_OFFSET_Q   (-24L << IIR_FRAC_BITS)     /* = -6144 */
 #define EXAMPLE_MASTER             I3C0
 #define I3C_MASTER_CLOCK_FREQUENCY CLOCK_GetI3CFClkFreq()
 #define SENSOR_SLAVE_ADDR          0x48U
@@ -38,10 +45,15 @@ volatile bool g_masterCompletionFlag;
 i3c_master_handle_t g_i3c_m_handle;
 p3t1755_handle_t p3t1755Handle;
 
-static double total_temp[MAX_TEMP_CNT];
-static uint8_t temp_cnt;
-static uint8_t temp_pointer;
+/*******************************************************************************
+ * 滤波器状态
+ ******************************************************************************/
+static int32_t iir_state_q = 0;     /* IIR状态，Q8定点，单位 1/4096 °C */
+static bool    iir_valid   = false;  /* 是否已有有效输出 */
 
+static int16_t med_win[3];          /* 中值滤波窗口，单位 1/16 °C */
+static uint8_t med_idx = 0;
+static uint8_t med_cnt = 0;
 
 const i3c_master_transfer_callback_t masterCallback = {
     .slave2Master = NULL, .ibiCallback = NULL, .transferComplete = i3c_master_callback};
@@ -225,42 +237,109 @@ void init_i3c_p3t1755(void)
     P3T1755_Init(&p3t1755Handle, &p3t1755Config);
 }
 
-double get_temp()
+/*******************************************************************************
+ * ① 直接读温度寄存器，得到12位补码raw（整数，1/16 °C）
+ *    不经过P3T1755驱动的float转换，全程无浮点
+ ******************************************************************************/
+static status_t p3t1755_read_raw(p3t1755_handle_t *handle, int16_t *raw)
 {
-    double sum = 0;
-    
-    if (temp_cnt == 0)
+    uint8_t data[2];
+    uint16_t u;
+
+    status_t result = P3T1755_ReadReg(handle, P3T1755_TEMPERATURE_REG, &data[0], 2);
+    if (result != kStatus_Success)
     {
-        return 0;
+        return result;
     }
-    
-    for (uint8_t i = 0; i < temp_cnt; i++)
+
+    u = ((uint16_t)data[0] << 8) | data[1];
+    u >>= 4;                        /* 保留12位有效数据 */
+    if (u & 0x0800U)                /* 负数：符号位扩展到16位 */
     {
-        sum += total_temp[i];
+        u |= 0xF000U;
     }
-    return (sum / temp_cnt) - 1.5;
-    /*20251022 显示22.5, 参考21.0*/
+    *raw = (int16_t)u;              /* 单位 0.0625 °C */
+    return kStatus_Success;
 }
 
-void read_temp()
+/*******************************************************************************
+ * ② 3点中值：去掉脉冲型野值
+ ******************************************************************************/
+static int16_t median3(int16_t a, int16_t b, int16_t c)
 {
-    double temperature = 0.0;
-    if (P3T1755_ReadTemperature(&p3t1755Handle, &temperature) == kStatus_Success)
+    int16_t t;
+    if (a > b) { t = a; a = b; b = t; }   /* 保证 a <= b */
+    if (a > c) return a;                  /* c < a <= b → 中值 a */
+    if (b > c) return c;                  /* a <= c <  b → 中值 c */
+    return b;                             /* a <= b <= c → 中值 b */
+}
+
+/*******************************************************************************
+ * ③ 整数一阶IIR：y += (x - y) / 32，定点运算
+ ******************************************************************************/
+static void iir_update(int16_t median_raw)
+{
+    int32_t xq = (int32_t)median_raw << IIR_FRAC_BITS;
+
+    if (!iir_valid)
     {
-        total_temp[temp_pointer++] = temperature;
-        if (temp_pointer >= MAX_TEMP_CNT)
-        {
-            temp_pointer = 0;
-        }
-        if (++temp_cnt > MAX_TEMP_CNT)
-        {
-            temp_cnt = MAX_TEMP_CNT;
-        }
+        iir_state_q = xq;           /* 首拍直通，避免从0爬升 */
+        iir_valid   = true;
+        return;
     }
-    else
+    iir_state_q += (xq - iir_state_q) / (int32_t)(1UL << IIR_SHIFT);
+}
+
+/*!
+ * @brief 获取滤波后温度，单位0.1°C，已四舍五入
+ * @return 例如 22.5°C 返回 225；无有效数据返回 0
+ */
+int16_t get_temp_x10(void)
+{
+    int32_t n;
+
+    if (!iir_valid)
     {
+        return 0;   /* 与原 get_temp() 未初始化时返回0的行为一致 */
+    }
+
+    /* Q8状态(1/4096°C) → 0.1°C：先乘10再除4096 */
+    n = (iir_state_q + TEMP_OFFSET_Q) * 10;
+
+    /* 四舍五入到最近的0.1°C，负温同样对称（与C的round()语义一致） */
+    n = (n >= 0) ? ((n + 2048) / 4096)
+                 : -((-n + 2048) / 4096);
+
+    return (int16_t)n;
+}
+
+/*******************************************************************************
+ * 周期调用：读一次raw → 入中值窗口 → 窗口满后送IIR
+ ******************************************************************************/
+void read_temp(void)
+{
+    int16_t raw;
+
+    if (p3t1755_read_raw(&p3t1755Handle, &raw) != kStatus_Success)
+    {
+        /* 总线异常：复位滤波器与窗口后重初始化，防止旧状态污染新数据 */
+        iir_valid = false;
+        iir_state_q = 0;
+        med_cnt = 0;
+        med_idx = 0;
         init_i3c_p3t1755();
+        return;
+    }
+
+    med_win[med_idx] = raw;
+    med_idx = (uint8_t)((med_idx + 1U) % 3U);
+    if (med_cnt < 3U)
+    {
+        med_cnt++;
+    }
+
+    if (med_cnt == 3U)              /* 窗口填满后才启动IIR，前两拍不输出新值 */
+    {
+        iir_update(median3(med_win[0], med_win[1], med_win[2]));
     }
 }
-
-

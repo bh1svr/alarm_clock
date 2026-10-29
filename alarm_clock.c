@@ -108,7 +108,7 @@ static void update_display()
 
 static void display_temp(uint8_t *to_show)
 {
-    int temp = (int) round(get_temp() * 10);
+    int16_t temp = get_temp_x10();      /* 单位0.1°C，已舍入，无需round */
     to_show[0] = temp / 100;
     temp      %= 100;
     to_show[1] = (temp / 10) | DOT;
@@ -156,8 +156,7 @@ static void display_min_temp(uint8_t *time_to_show)
     time_to_show[2] = current_local_time.minute / 10;
     time_to_show[3] = current_local_time.minute % 10;
     time_to_show[4] = BLANK;
-
-    int temp = (int) round(get_temp() * 10);
+    int16_t temp = get_temp_x10();      /* 单位0.1°C，已舍入，无需round */
     time_to_show[5] = temp / 100;
     temp      %= 100;
     time_to_show[6] = (temp / 10) | DOT;
