@@ -6,7 +6,6 @@
 #include "gps_parser.h"
 #include "i3c_master_read_sensor_p3t1755.h"
 #include "led.h"
-#include "math.h"
 #include "pin_mux.h"
 #include "pwm.h"
 #include <stdbool.h>
@@ -34,7 +33,6 @@ volatile uint32_t gps_rand;
 
 static void display_time(uint8_t *time_to_show);
 static void display_date(uint8_t *to_show);
-static void display_temp(uint8_t *to_show);
 static void display_min_temp(uint8_t *time_to_show);
 
 void display_random(uint8_t *to_show)
@@ -96,28 +94,9 @@ static void update_display()
             display_date(to_show);
             update_led(to_show);
             break;
-        case DISP_TEMP:
-            enable_led();
-            display_temp(to_show);
-            update_led(to_show);
-            break;
         default:
             break;
     }
-}
-
-static void display_temp(uint8_t *to_show)
-{
-    int16_t temp = get_temp_x10();      /* 单位0.1°C，已舍入，无需round */
-    to_show[0] = temp / 100;
-    temp      %= 100;
-    to_show[1] = (temp / 10) | DOT;
-    to_show[2] = temp % 10;
-    to_show[3] = BLANK;
-    to_show[4] = BLANK;
-    to_show[5] = BLANK;
-    to_show[6] = BLANK;
-    to_show[7] = BLANK;
 }
 
 static void display_date(uint8_t *to_show)
@@ -273,6 +252,7 @@ void init_clock_reset()
     /* PORT3: Peripheral clock is enabled */
     CLOCK_EnableClock(kCLOCK_GatePORT3);
     
+    RESET_ReleasePeripheralReset(kGPIO0_RST_SHIFT_RSTn);
     RESET_ReleasePeripheralReset(kGPIO1_RST_SHIFT_RSTn);
     /* GPIO3 peripheral is released from reset */
     RESET_ReleasePeripheralReset(kGPIO3_RST_SHIFT_RSTn);
