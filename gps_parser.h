@@ -23,4 +23,5 @@ void GPS_ParseChar(char c);
 // 获取解析后的本地时间
 void GPS_GetLocalTime(local_time_t *out_time);
 void parse_gprmc(char* nmea);
+void RxFeed(const uint8_t *p, uint32_t n);
 #endif // GPS_PARSER_H

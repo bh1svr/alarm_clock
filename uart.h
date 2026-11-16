@@ -8,4 +8,5 @@
 #include "fsl_port.h"
 void init_lpuart0(void);
 void init_lpuart1(void);
+uint32_t NMEA_RxRead(uint8_t *dst, uint32_t max);
 #endif

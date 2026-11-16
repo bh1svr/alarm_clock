@@ -12,8 +12,6 @@
 #define I3C_TEMP_REG        0x00U   /* P3T1755 Temperature寄存器指针 */
 #define IIR_SHIFT           5U      /* alpha = 1/32，越大响应越快、越不平滑 */
 #define IIR_FRAC_BITS       8       /* 定点小数位数：raw(1/16°C)再左移8位 → 分辨率1/4096°C */
-/* 偏移量的定点形式：-1.5°C = -24个raw(1/16°C)，再换算到Q8 */
-#define TEMP_OFFSET_Q   (-24L << IIR_FRAC_BITS)     /* = -6144 */
 #define EXAMPLE_MASTER             I3C0
 #define I3C_MASTER_CLOCK_FREQUENCY CLOCK_GetI3CFClkFreq()
 #define SENSOR_SLAVE_ADDR          0x48U
@@ -304,7 +302,7 @@ int16_t get_temp_x10(void)
     }
 
     /* Q8状态(1/4096°C) → 0.1°C：先乘10再除4096 */
-    n = (iir_state_q + TEMP_OFFSET_Q) * 10;
+    n = iir_state_q * 10;
 
     /* 四舍五入到最近的0.1°C，负温同样对称（与C的round()语义一致） */
     n = (n >= 0) ? ((n + 2048) / 4096)

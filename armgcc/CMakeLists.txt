@@ -66,8 +66,6 @@ add_executable(${MCUX_SDK_PROJECT_NAME}
 "${ProjDirPath}/../switch.c"
 "${ProjDirPath}/../i3c_master_read_sensor_p3t1755.c"
 "${ProjDirPath}/../pin_mux_i3c.c"
-"${ProjDirPath}/../fsl_p3t1755.c"
-"${ProjDirPath}/../fsl_i3c.c"
 "${ProjDirPath}/../fsl_sbrk.c"
 "${ProjDirPath}/../fsl_syscall_stub.c"
 "${ProjDirPath}/../fsl_memcpy.S"

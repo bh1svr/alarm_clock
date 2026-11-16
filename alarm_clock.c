@@ -101,7 +101,11 @@ static void update_display()
 
 static void display_date(uint8_t *to_show)
 {
-    uint8_t year_2digits = current_local_time.year - 2000;
+    uint8_t year_2digits = current_local_time.year;
+    if (year_2digits >= 2000)
+    {
+        year_2digits -= 2000;
+    }
     to_show[0] = year_2digits / 10;
     to_show[1] = (year_2digits % 10) | DOT;
     to_show[2] = current_local_time.month / 10;
@@ -227,10 +231,6 @@ static void alarm_clock_check()
 static void self_test()
 {
     LED_RED_ON();
-    while (!is_rmc_ready)
-    {
-        ;
-    }
     BEEP_ON();
     SDK_DelayAtLeastUs(1e6, SDK_DEVICE_MAXIMUM_CPU_CLOCK_FREQUENCY);
     BEEP_OFF();
@@ -306,10 +306,11 @@ int main(void)
     for (;;)
     {
         /*收到GPS数据，解析并判断闹钟*/
-        if (is_rmc_ready)
+        uint8_t chunk[256];
+        uint32_t n = NMEA_RxRead(chunk, sizeof(chunk));
+        if (n > 0)
         {
-            is_rmc_ready = false;
-            parse_gprmc(rmc);
+            RxFeed(chunk, n);
             update_display();
             alarm_clock_check();
             read_temp();
