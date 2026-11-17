@@ -23,6 +23,9 @@
 #define BEEP_ON()            PWM_StartTimer(FLEXPWM0, kPWM_Control_Module_0);
 #define BEEP_OFF()           PWM_StopTimer(FLEXPWM0, kPWM_Control_Module_0);
 
+const static uint8_t alarm_hour = 6;
+const static uint8_t alarm_min = 30;
+
 extern int pwm_main(void);
 
 // 全局状态变量
@@ -34,6 +37,7 @@ volatile uint32_t gps_rand;
 static void display_time(uint8_t *time_to_show);
 static void display_date(uint8_t *to_show);
 static void display_min_temp(uint8_t *time_to_show);
+static void display_alarm(uint8_t *to_show);
 
 void display_random(uint8_t *to_show)
 {
@@ -94,17 +98,38 @@ static void update_display()
             display_date(to_show);
             update_led(to_show);
             break;
+        case DISP_ALARM_TM:
+            enable_led();
+            display_alarm(to_show);
+            update_led(to_show);
+            break;
         default:
             break;
     }
 }
 
+static void display_alarm(uint8_t *to_show)
+{
+    to_show[0] = BLANK;
+    to_show[1] = alarm_hour / 10;
+    to_show[2] = alarm_hour % 10;
+    to_show[3] = BLANK;
+    to_show[4] = BLANK;
+    to_show[5] = alarm_min / 10;
+    to_show[6] = alarm_min % 10;
+    to_show[7] = BLANK;
+}
+
 static void display_date(uint8_t *to_show)
 {
-    uint8_t year_2digits = current_local_time.year;
-    if (year_2digits >= 2000)
+    uint8_t year_2digits;
+    if (current_local_time.year >= 2000)
     {
-        year_2digits -= 2000;
+        year_2digits = current_local_time.year - 2000;
+    }
+    else
+    {
+        year_2digits = current_local_time.year;
     }
     to_show[0] = year_2digits / 10;
     to_show[1] = (year_2digits % 10) | DOT;
@@ -169,9 +194,6 @@ static void display_time(uint8_t *time_to_show)
 static void alarm_clock_check()
 {
     static _Bool is_alarm_triggered = false;
-    const uint8_t alarm_hour = 6;
-    const uint8_t alarm_min = 30;
-
     // 当达到闹钟时间时
     if (current_local_time.hour == alarm_hour && current_local_time.minute == alarm_min)
     {       
@@ -291,7 +313,6 @@ int main(void)
     EnableIRQ(BOARD_SW2_IRQ);
     GPIO_PinInit(BOARD_SW2_GPIO, BOARD_SW2_GPIO_PIN, &sw_config);
 
-
     GPIO_SetPinInterruptConfig(BOARD_SW3_GPIO, BOARD_SW3_GPIO_PIN, kGPIO_InterruptFallingEdge);
     EnableIRQ(BOARD_SW3_IRQ);
     GPIO_PinInit(BOARD_SW3_GPIO, BOARD_SW3_GPIO_PIN, &sw_config);
@@ -302,6 +323,7 @@ int main(void)
     init_i3c_p3t1755();
 
     uint32_t cycle = 0;
+    uint8_t  prev_second = 60;
     display_mode_t last_disp_mode = DISP_MAX;
     for (;;)
     {
@@ -311,9 +333,13 @@ int main(void)
         if (n > 0)
         {
             RxFeed(chunk, n);
+        }
+        if (current_local_time.second != prev_second)
+        {
             update_display();
             alarm_clock_check();
             read_temp();
+            prev_second = current_local_time.second;
         }
         if (last_disp_mode != current_disp_mode)
         {
